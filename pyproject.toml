@@ -1,0 +1,51 @@
+# Build system configuration
+[build-system]
+requires = ["setuptools>=62.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# Project metadata
+[project]
+name = "radiation-patterns"
+version = "0.1.0"
+description = "A Python package for analyzing and visualizing radiation patterns."
+readme = "README.md"  # Path to your project's README file (optional)
+license = {file = "LICENSE" }  # Path to your license file (e.g., MIT, Apache)
+authors = [
+    { name = "Joseph Asplet", email = "joseph.asplet@earth.ox.ac.uk" }
+]
+maintainers = [
+    { name = "Joseph Asplet", email = "joseph.asplet@earth.ox.ac.uk" }
+]
+keywords = ["radiation", "patterns", "visualization", "matplotlib"]
+classifiers = [
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Science/Research",
+]
+dependencies = [
+    "numpy==1.26.4",
+    "matplotlib==3.8.4"
+]
+requires-python = ">=3.11"
+
+# # If you have optional dependencies (e.g., for development or testing):
+# [project.optional-dependencies]
+# dev = ["pytest>=7.0", "flake8", "black"]
+# docs = ["sphinx", "sphinx-rtd-theme"]
+
+# Ensure tests can be run from the installed package
+[tool.setuptools.packages.find]
+where = ["radiation"]
+
+# Include additional non-code files in your package distribution
+[tool.setuptools]
+include-package-data = true
+
+# Add configurations for testing or development tools
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]  # Directory containing your tests
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
