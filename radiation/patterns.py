@@ -24,6 +24,37 @@
 # direct import these functions to keep things concise
 from numpy import sin, cos, deg2rad
 import numpy as np
+import pygc
+from obspy.geodetics import kilometers2degrees, degrees2kilometers
+from obspy.taup import TauPyModel
+
+
+def model_ray_param_ak135(lat1, lon1, lat2, lon2, vp=5, vs=3):
+
+    dist_km = pygc.great_distance(start_latitude=lat1,
+                                  end_latitude=lat2,
+                                  start_longitude=lon1,
+                                  end_longitude=lon2)['distance'] * 1e-3
+    dist_deg = kilometers2degrees(dist_km)
+    model = TauPyModel(model="ak135")
+    arrivals = model.get_ray_paths(source_depth_in_km=1,
+                                   distance_in_degree=dist_deg,
+                                   phase_list=["P", "S"])
+    p = False
+    s = False
+    for arrival in arrivals:
+        if (arrival.name == 'P') and (p == False):
+            print(p)
+            ray_param_p = 1/degrees2kilometers(1/arrival.ray_param_sec_degree) #in s/km
+            print(ray_param_p)
+            takeoff_p = np.rad2deg(np.arcsin(ray_param_p * vp))
+            p = True
+        elif arrival.name == 'S' and ~s:
+            ray_param_s = 1/degrees2kilometers(1/arrival.ray_param_sec_degree) #in s/km
+            takeoff_s = np.rad2deg(np.arcsin(ray_param_s * vs))
+            s = True
+
+    return takeoff_p, takeoff_s
 
 
 def calc_coefficiants(rake, dip, strike, reciever_azi):
