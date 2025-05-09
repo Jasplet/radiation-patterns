@@ -34,3 +34,4 @@ def plot_radiation(ax, radiation_coeff, azimuths):
     ax.plot(azimuths, np.ones(azimuths.shape), 'k--')
 
     return ax
+
