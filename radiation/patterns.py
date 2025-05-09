@@ -29,6 +29,15 @@ from obspy.geodetics import kilometers2degrees, degrees2kilometers
 from obspy.taup import TauPyModel
 
 
+def calc_station_dist_az_rad(stat_lat, stat_lon, fault):
+    dist_az = pygc.great_distance(end_latitude=stat_lat,
+                    end_longitude=stat_lon,
+                    start_latitude=fault['latitude'],
+                    start_longitude=fault['longitude'])
+
+    return dist_az['distance']*1e-3, np.deg2rad(dist_az['azimuth'])
+
+
 def model_ray_param_ak135(lat1, lon1, lat2, lon2, vp=5, vs=3):
 
     dist_km = pygc.great_distance(start_latitude=lat1,
@@ -43,16 +52,18 @@ def model_ray_param_ak135(lat1, lon1, lat2, lon2, vp=5, vs=3):
     p = False
     s = False
     for arrival in arrivals:
-        if (arrival.name == 'P') and (p == False):
+        print(arrival.name)
+        if (arrival.name == 'P') and (if p is False):
             print(p)
             ray_param_p = 1/degrees2kilometers(1/arrival.ray_param_sec_degree) #in s/km
             print(ray_param_p)
             takeoff_p = np.rad2deg(np.arcsin(ray_param_p * vp))
             p = True
-        elif arrival.name == 'S' and ~s:
+        elif arrival.name == 'S' and (if s is False) :
             ray_param_s = 1/degrees2kilometers(1/arrival.ray_param_sec_degree) #in s/km
             takeoff_s = np.rad2deg(np.arcsin(ray_param_s * vs))
             s = True
+
 
     return takeoff_p, takeoff_s
 
@@ -91,7 +102,7 @@ def calc_rad_patterns(rake, dip, strike, reciever_azi, takeoff_angle):
                                                 reciever_azi)
 
     # Calc P radiation pattern
-    rad_p_1 = s_r*(3*(cos(takeoff_angle)**2) - 1) 
+    rad_p_1 = s_r*(3*(cos(takeoff_angle)**2) - 1)
     rad_p_2 = q_r*sin(2*takeoff_angle)
     rad_p_3 = p_r*(sin(takeoff_angle)**2)
     rad_p = rad_p_1 - rad_p_2 - rad_p_3
@@ -100,17 +111,17 @@ def calc_rad_patterns(rake, dip, strike, reciever_azi, takeoff_angle):
     rad_sv_1 = 1.5*s_r*sin(2*takeoff_angle)
     rad_sv_2 = q_r*cos(2*takeoff_angle)
     rad_sv_3 = 0.5*p_r*sin(2*takeoff_angle)
-    rad_sv = rad_sv_1 + rad_sv_2 + rad_sv_3
+    rad_sv = rad_sv_1 + rad_sv_2 - rad_sv_3
 
     # Calc SH radiation
-    rad_sh = q_l*cos(takeoff_angle) + p_l*sin(takeoff_angle)
+    rad_sh = - q_l*cos(takeoff_angle) - p_l*sin(takeoff_angle)
     return rad_p, rad_sv, rad_sh
 
 
 def radiation_patterns_2d(fault, n_azis, n_takeoffs):
 
     takeoffs = np.linspace(0, np.pi/2, n_takeoffs)
-    azimuths = np.linpace(0, 2*np.pi, n_azis)
+    azimuths = np.linspace(0, 2*np.pi, n_azis)
     r_p_2d = np.zeros((len(takeoffs), len(azimuths)))
     r_sh_2d = np.zeros((len(takeoffs), len(azimuths)))
     r_sv_2d = np.zeros((len(takeoffs), len(azimuths)))
@@ -123,7 +134,7 @@ def radiation_patterns_2d(fault, n_azis, n_takeoffs):
                                                   reciever_azi=azimuths,
                                                   takeoff_angle=takeoffs[t])
         r_p_2d[t, :] = p_rad
-        r_sv_2d[t,:] = sv_rad
-        r_sh_2d[t,:] = sh_rad
+        r_sv_2d[t, :] = sv_rad
+        r_sh_2d[t, :] = sh_rad
 
     return r_p_2d, r_sv_2d, r_sh_2d
