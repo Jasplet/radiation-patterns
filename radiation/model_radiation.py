@@ -32,9 +32,9 @@ def plot_2d_radiation_patterns(fault,
                                                            nazis,
                                                            ntakeoffs)
 
-    # Mean radiation pattern over whole focal sphere per Aki and Richards (1982).
-    mean_P = np.sqrt(4/15)
-    mean_S = np.sqrt(2/5)
+    # Mean radiation pattern over whole focal sphere per Boore and Boatwright (1984).
+    mean_P = 0.44
+    mean_S = 0.6
     # normalise radiation patterns by mean amplitude
     rad_P = rad_P / mean_P
     rad_SV = rad_SV / mean_S
@@ -137,6 +137,8 @@ def plot_2d_radiation_patterns(fault,
         stations_out['takeoff_s'] = np.zeros((n,))
         stations_out['P_radiation'] = np.zeros((n,))
         stations_out['S_radiation'] = np.zeros((n,))
+        stations_out['SV_radiation'] = np.zeros((n,))
+        stations_out['SH_radiation'] = np.zeros((n,))
         stations_out['Mw_diff_P'] = np.zeros((n,))
         stations_out['Mw_diff_S'] = np.zeros((n,))
         markers = ['o', 'P', 'X', 'D', 's' '8', 'h', 'v']
@@ -156,7 +158,7 @@ def plot_2d_radiation_patterns(fault,
                                                             strike=deg2rad(fault['strike']),
                                                             reciever_azi=stat_az,
                                                             takeoff_angle=deg2rad(takeoff_p))
-            
+        
             _, rsv_stat, rsh_stat = patterns.calc_rad_patterns(rake=deg2rad(fault['rake']),
                                                     dip=deg2rad(fault['dip']),
                                                     strike=deg2rad(fault['strike']),
@@ -171,6 +173,8 @@ def plot_2d_radiation_patterns(fault,
             # sqrt(SV**2 + SH**2)
 
             stations_out['S_radiation'][i] = np.round(np.sqrt(rsv_stat**2 + rsh_stat**2) / mean_S, decimals=3)
+            stations_out['SV_radiation'][i] = rsv_stat
+            stations_out['SH_radiation'][i] = rsh_stat      
             stations_out['Mw_diff_P'][i] = np.round((2/3)*np.log10(stations_out['P_radiation'][i]), decimals=2)
             stations_out['Mw_diff_S'][i] = np.round((2/3)*np.log10(stations_out['S_radiation'][i]), decimals=2)
             ax1.plot(stations_out['azis'][i],
