@@ -178,7 +178,32 @@ def calc_coefficiants(rake, dip, strike, reciever_azi):
 
 
 def calc_rad_patterns(rake, dip, strike, reciever_azi, takeoff_angle):
+    """
+    Calculate P, SV, and SH radiation patterns based on Ammon et al., (2021)
+    equations.
 
+    Parameters
+    ----------
+    rake : float
+        Rake angle in radians.
+    dip : float
+        Dip angle in radians.
+    strike : float
+        Strike angle in radians.
+    reciever_azi : float or numpy.ndarray
+        Receiver azimuth(s) in radians. Can also be a numpy array for multiple recievers
+    takeoff_angle : float
+        Takeoff angle in radians.
+
+    Returns
+    -------
+    rad_p : float or numpy.ndarray
+        P-wave radiation pattern(s). Same shape as reciever_azi.
+    rad_sv : float or numpy.ndarray
+        SV-wave radiation pattern(s). Same shape as reciever_azi.
+    rad_sh : float or numpy.ndarray
+        SH-wave radiation pattern(s). Same shape as reciever_azi.
+    """
     s_r, q_r, p_r, q_l, p_l = calc_coefficiants(rake, dip, strike, reciever_azi)
 
     # Calc P radiation pattern
@@ -199,7 +224,27 @@ def calc_rad_patterns(rake, dip, strike, reciever_azi, takeoff_angle):
 
 
 def radiation_patterns_2d(fault, n_azis, n_takeoffs):
+    """
+    Calculate 2D radiation patterns for P, SV, and SH waves over a grid of
+    azimuths and takeoff angles.
 
+    Parameters
+    ----------
+    fault : dict
+        Dictionary containing 'rake', 'dip', and 'strike' of the fault in degrees.
+    n_azis : int
+        Number of azimuth points to calculate (from 0 to 2pi).
+    n_takeoffs : int
+        Number of takeoff angle points to calculate (from 0 to pi/2).
+    Returns
+    -------
+    r_p_2d : numpy.ndarray
+        2D array of P-wave radiation patterns with shape (n_takeoffs, n_azis).
+    r_sv_2d : numpy.ndarray
+        2D array of SV-wave radiation patterns with shape (n_takeoffs, n_azis).
+    r_sh_2d : numpy.ndarray
+        2D array of SH-wave radiation patterns with shape (n_takeoffs, n_azis).
+    """
     takeoffs = np.linspace(0, np.pi / 2, n_takeoffs)
     azimuths = np.linspace(0, 2 * np.pi, n_azis)
     r_p_2d = np.zeros((len(takeoffs), len(azimuths)))
