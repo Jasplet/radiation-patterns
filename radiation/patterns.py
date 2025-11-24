@@ -30,109 +30,167 @@ from obspy.taup import TauPyModel
 
 
 def calc_station_dist_az_rad(stat_lat, stat_lon, fault):
-    dist_az = pygc.great_distance(end_latitude=stat_lat,
-                    end_longitude=stat_lon,
-                    start_latitude=fault['latitude'],
-                    start_longitude=fault['longitude'])
+    """
+    Calculate distance (in km) and azimuth (in radians) from fault to station
+    using pygc.
 
-    return dist_az['distance']*1e-3, np.deg2rad(dist_az['azimuth'])
+    Parameters
+    ----------
+    stat_lat : float or numpy.ndarray
+        Station latitude in degrees. Can also be a numpy array.
+    stat_lon : float or numpy.ndarray
+        Station longitude in degrees. Can also be a numpy array.
+    fault : dict
+        Dictionary containing 'latitude' and 'longitude' of the fault in degrees.
+
+    Returns
+    -------
+    distance : float or numpy.ndarray
+        Distance from fault to station in kilometers.
+    azimuth_rad : float or numpy.ndarray
+        Azimuth from fault to station in radians.
+
+    """
+    dist_az = pygc.great_distance(
+        end_latitude=stat_lat,
+        end_longitude=stat_lon,
+        start_latitude=fault["latitude"],
+        start_longitude=fault["longitude"],
+    )
+
+    return dist_az["distance"] * 1e-3, np.deg2rad(dist_az["azimuth"])
 
 
 def model_ray_param_ak135(lat1, lon1, lat2, lon2, vp=5, vs=3):
+    """
+    Uses obspy TauPyModel to calculate ray parameters and takeoff angles
+    for P and S waves between two geographic locations based on the ak135
+    Earth model. This is probably not very accurate for short distances given
+    the coarse depth resolution of ak135 but should be ok as a first approximation.
 
-    dist_km = pygc.great_distance(start_latitude=lat1,
-                                  end_latitude=lat2,
-                                  start_longitude=lon1,
-                                  end_longitude=lon2)['distance'] * 1e-3
+    Parameters
+    ----------
+    lat1 : float
+        Latitude of the source in degrees.
+    lon1 : float
+        Longitude of the source in degrees.
+    lat2 : float
+        Latitude of the receiver in degrees.
+    lon2 : float
+        Longitude of the receiver in degrees.
+    vp : float, optional
+        P-wave velocity in km/s. Default is 5 km/s.
+    vs : float, optional
+        S-wave velocity in km/s. Default is 3 km/s.
+
+    Returns
+    -------
+    takeoff_p : float
+        Takeoff angle for P-wave in degrees.
+    takeoff_s : float
+        Takeoff angle for S-wave in degrees.
+    """
+    dist_km = (
+        pygc.great_distance(
+            start_latitude=lat1,
+            end_latitude=lat2,
+            start_longitude=lon1,
+            end_longitude=lon2,
+        )["distance"]
+        * 1e-3
+    )
     dist_deg = kilometers2degrees(dist_km)
+
     model = TauPyModel(model="ak135")
-    arrivals = model.get_ray_paths(source_depth_in_km=1,
-                                   distance_in_degree=dist_deg,
-                                   phase_list=["P", "S"])
+    arrivals = model.get_ray_paths(
+        source_depth_in_km=1,
+        distance_in_degree=dist_deg,
+        phase_list=["p", "P", "s", "S"],
+    )
     p = False
     s = False
     for arrival in arrivals:
-        print(arrival.name)
-        if (arrival.name == 'P') and (if p is False):
-            print(p)
-            ray_param_p = 1/degrees2kilometers(1/arrival.ray_param_sec_degree) #in s/km
-            print(ray_param_p)
+        # print(arrival.name)
+        if (arrival.name in ["p", "P"]) and (p is False):
+            ray_param_p = 1 / degrees2kilometers(
+                1 / arrival.ray_param_sec_degree
+            )  # in s/km
             takeoff_p = np.rad2deg(np.arcsin(ray_param_p * vp))
             p = True
-        elif arrival.name == 'S' and (if s is False) :
-            ray_param_s = 1/degrees2kilometers(1/arrival.ray_param_sec_degree) #in s/km
+        elif arrival.name in ["S", "s"] and (s is False):
+            ray_param_s = 1 / degrees2kilometers(
+                1 / arrival.ray_param_sec_degree
+            )  # in s/km
             takeoff_s = np.rad2deg(np.arcsin(ray_param_s * vs))
             s = True
-
 
     return takeoff_p, takeoff_s
 
 
 def calc_coefficiants(rake, dip, strike, reciever_azi):
-    '''
+    """
     Calculate co-efficiants used in Ammon et al., (2021)
-    '''
+    """
     theta = reciever_azi - strike
-#   sr
-    s_r = sin(rake)*sin(dip)*cos(dip)
-#   qr
-    q_r_1 = sin(rake)*cos(2*dip)*sin(theta) 
-    q_r_2 = cos(rake)*cos(dip)*cos(theta)
+    #   sr
+    s_r = sin(rake) * sin(dip) * cos(dip)
+    #   qr
+    q_r_1 = sin(rake) * cos(2 * dip) * sin(theta)
+    q_r_2 = cos(rake) * cos(dip) * cos(theta)
     q_r = q_r_1 + q_r_2
-#   pr
-    p_r_1 = cos(rake)*sin(dip)*sin(2*theta)
-    p_r_2 = sin(rake)*sin(dip)*cos(dip)*cos(2*theta)
+    #   pr
+    p_r_1 = cos(rake) * sin(dip) * sin(2 * theta)
+    p_r_2 = sin(rake) * sin(dip) * cos(dip) * cos(2 * theta)
     p_r = p_r_1 - p_r_2
-#   ql
-    q_l_1 = -(cos(rake)*cos(dip))*sin(theta) 
-    q_l_2 = (sin(rake)*cos(2*dip))*cos(theta)
+    #   ql
+    q_l_1 = -(cos(rake) * cos(dip)) * sin(theta)
+    q_l_2 = (sin(rake) * cos(2 * dip)) * cos(theta)
     q_l = q_l_1 + q_l_2
-#   pl
-    p_l_1 = sin(rake)*sin(dip)*cos(dip)*sin(2*theta)
-    p_l_2 = cos(rake)*sin(dip)*cos(2*theta)
+    #   pl
+    p_l_1 = sin(rake) * sin(dip) * cos(dip) * sin(2 * theta)
+    p_l_2 = cos(rake) * sin(dip) * cos(2 * theta)
     p_l = p_l_1 + p_l_2
     return s_r, q_r, p_r, q_l, p_l
 
 
 def calc_rad_patterns(rake, dip, strike, reciever_azi, takeoff_angle):
 
-    s_r, q_r, p_r, q_l, p_l = calc_coefficiants(rake,
-                                                dip,
-                                                strike,
-                                                reciever_azi)
+    s_r, q_r, p_r, q_l, p_l = calc_coefficiants(rake, dip, strike, reciever_azi)
 
     # Calc P radiation pattern
-    rad_p_1 = s_r*(3*(cos(takeoff_angle)**2) - 1)
-    rad_p_2 = q_r*sin(2*takeoff_angle)
-    rad_p_3 = p_r*(sin(takeoff_angle)**2)
+    rad_p_1 = s_r * (3 * (cos(takeoff_angle) ** 2) - 1)
+    rad_p_2 = q_r * sin(2 * takeoff_angle)
+    rad_p_3 = p_r * (sin(takeoff_angle) ** 2)
     rad_p = rad_p_1 - rad_p_2 - rad_p_3
 
     # Calc SV radiation
-    rad_sv_1 = 1.5*s_r*sin(2*takeoff_angle)
-    rad_sv_2 = q_r*cos(2*takeoff_angle)
-    rad_sv_3 = 0.5*p_r*sin(2*takeoff_angle)
+    rad_sv_1 = 1.5 * s_r * sin(2 * takeoff_angle)
+    rad_sv_2 = q_r * cos(2 * takeoff_angle)
+    rad_sv_3 = 0.5 * p_r * sin(2 * takeoff_angle)
     rad_sv = rad_sv_1 + rad_sv_2 - rad_sv_3
 
     # Calc SH radiation
-    rad_sh = - q_l*cos(takeoff_angle) - p_l*sin(takeoff_angle)
+    rad_sh = -q_l * cos(takeoff_angle) - p_l * sin(takeoff_angle)
     return rad_p, rad_sv, rad_sh
 
 
 def radiation_patterns_2d(fault, n_azis, n_takeoffs):
 
-    takeoffs = np.linspace(0, np.pi/2, n_takeoffs)
-    azimuths = np.linspace(0, 2*np.pi, n_azis)
+    takeoffs = np.linspace(0, np.pi / 2, n_takeoffs)
+    azimuths = np.linspace(0, 2 * np.pi, n_azis)
     r_p_2d = np.zeros((len(takeoffs), len(azimuths)))
     r_sh_2d = np.zeros((len(takeoffs), len(azimuths)))
     r_sv_2d = np.zeros((len(takeoffs), len(azimuths)))
 
     for t in range(0, n_takeoffs):
         # we could possibly vecotirze this loop...?
-        p_rad, sv_rad, sh_rad = calc_rad_patterns(rake=deg2rad(fault['rake']),
-                                                  dip=deg2rad(fault['dip']),
-                                                  strike=deg2rad(fault['strike']),
-                                                  reciever_azi=azimuths,
-                                                  takeoff_angle=takeoffs[t])
+        p_rad, sv_rad, sh_rad = calc_rad_patterns(
+            rake=deg2rad(fault["rake"]),
+            dip=deg2rad(fault["dip"]),
+            strike=deg2rad(fault["strike"]),
+            reciever_azi=azimuths,
+            takeoff_angle=takeoffs[t],
+        )
         r_p_2d[t, :] = p_rad
         r_sv_2d[t, :] = sv_rad
         r_sh_2d[t, :] = sh_rad
