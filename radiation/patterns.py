@@ -130,6 +130,30 @@ def model_ray_param_ak135(lat1, lon1, lat2, lon2, vp=5, vs=3):
 def calc_coefficiants(rake, dip, strike, reciever_azi):
     """
     Calculate co-efficiants used in Ammon et al., (2021)
+    equations for radiation patterns.
+
+    Parameters
+    ----------
+    rake : float
+        Rake angle in radians.
+    dip : float
+        Dip angle in radians.
+    strike : float
+        Strike angle in radians.
+    reciever_azi : float or numpy.ndarray
+        Receiver azimuth(s) in radians. Can also be a numpy array.
+    Returns
+    -------
+    s_r : float or numpy.ndarray
+        Co-efficient for S radiation pattern.
+    q_r : float or numpy.ndarray
+        Co-efficient for Q radiation pattern (radial).
+    p_r : float or numpy.ndarray
+        Co-efficient for P radiation pattern (radial).
+    q_l : float or numpy.ndarray
+        Co-efficient for Q radiation pattern (transverse).
+    p_l : float or numpy.ndarray
+        Co-efficient for P radiation pattern (transverse).
     """
     theta = reciever_azi - strike
     #   sr
