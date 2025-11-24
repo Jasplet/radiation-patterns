@@ -98,3 +98,64 @@ def test_model_ray_param_ak135_returns_tuple():
     assert len(result) == 2
     assert isinstance(result[0], (float, np.floating))
     assert isinstance(result[1], (float, np.floating))
+
+
+@pytest.mark.parametrize(
+    "azi", [np.deg2rad(0), np.deg2rad(45), np.deg2rad(120), np.deg2rad(305)]
+)
+def test_calc_coefficiants_SS(azi):
+    """
+    Tests calc_coefficiants function for strike-slip earthquakes
+    This simplifies the math allowing me to easily work out the
+    expected coefficiants.
+    """
+    from radiation.patterns import calc_coefficiants
+
+    # Test known values - Strike-slip EQ
+    rake = np.deg2rad(0)
+    dip = np.deg2rad(90)
+    strike = np.deg2rad(45)
+    coeffs = calc_coefficiants(rake, dip, strike, azi)
+    expected_coeffs = (
+        0.0,
+        0.0,
+        np.sin(2 * (azi - strike)),
+        0.0,
+        np.cos(2 * (azi - strike)),
+    )
+    assert_array_almost_equal(coeffs, expected_coeffs, decimal=5)
+
+
+def test_calc_rad_patterns_output_shape():
+    """
+    Tests that calc_rad_patterns returns arrays of the expected shape
+    when given array inputs.
+    """
+    from radiation.patterns import calc_rad_patterns
+
+    rake = np.deg2rad(90)
+    dip = np.deg2rad(30)
+    strike = np.deg2rad(60)
+    reciever_azi = np.deg2rad(np.array([0, 90, 180, 270]))
+    takeoff_angle = np.deg2rad(45)
+    rad_p, rad_sv, rad_sh = calc_rad_patterns(
+        rake, dip, strike, reciever_azi, takeoff_angle
+    )
+    assert rad_p.shape == reciever_azi.shape
+    assert rad_sv.shape == reciever_azi.shape
+    assert rad_sh.shape == reciever_azi.shape
+
+
+def test_radiation_patterns_2d_output_shape():
+    """
+    Tests that radiation_patterns_2d returns arrays of the expected shape.
+    """
+    from radiation.patterns import radiation_patterns_2d
+
+    fault = {"rake": 90, "dip": 30, "strike": 60}
+    n_azis = 10
+    n_takeoffs = 15
+    r_p_2d, r_sv_2d, r_sh_2d = radiation_patterns_2d(fault, n_azis, n_takeoffs)
+    assert r_p_2d.shape == (n_takeoffs, n_azis)
+    assert r_sv_2d.shape == (n_takeoffs, n_azis)
+    assert r_sh_2d.shape == (n_takeoffs, n_azis)
